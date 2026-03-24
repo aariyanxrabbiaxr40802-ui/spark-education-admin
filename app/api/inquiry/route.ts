@@ -1,6 +1,23 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+const allowedOrigin = "https://spark-education.vercel.app";
+
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders(),
+  });
+}
+
 export async function GET() {
   try {
     const { data, error } = await supabase
@@ -11,15 +28,18 @@ export async function GET() {
     if (error) {
       return NextResponse.json(
         { message: error.message, inquiries: [] },
-        { status: 500 }
+        { status: 500, headers: corsHeaders() }
       );
     }
 
-    return NextResponse.json({ inquiries: data || [] });
+    return NextResponse.json(
+      { inquiries: data || [] },
+      { status: 200, headers: corsHeaders() }
+    );
   } catch {
     return NextResponse.json(
       { message: "Server error", inquiries: [] },
-      { status: 500 }
+      { status: 500, headers: corsHeaders() }
     );
   }
 }
@@ -29,6 +49,13 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     const { name, phone, email, country, plan } = body;
+
+    if (!name || !phone || !email || !country || !plan) {
+      return NextResponse.json(
+        { message: "Missing required fields" },
+        { status: 400, headers: corsHeaders() }
+      );
+    }
 
     const { data, error } = await supabase
       .from("inquiries")
@@ -47,15 +74,18 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json(
         { message: error.message },
-        { status: 500 }
+        { status: 500, headers: corsHeaders() }
       );
     }
 
-    return NextResponse.json({ data });
+    return NextResponse.json(
+      { message: "Inquiry saved successfully", data },
+      { status: 200, headers: corsHeaders() }
+    );
   } catch {
     return NextResponse.json(
       { message: "Invalid request" },
-      { status: 400 }
+      { status: 400, headers: corsHeaders() }
     );
   }
 }
